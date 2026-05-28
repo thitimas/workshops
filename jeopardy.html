@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎉 CISE Workshop Jeopardy!</title>
+  <style>
+    :root {
+      --blue: #1a3a6b;
+      --gold: #f5c518;
+      --light-blue: #2255a4;
+      --card-bg: #1e4fa8;
+      --card-hover: #2a66d9;
+      --used: #1a1a2e;
+      --correct: #27ae60;
+      --wrong: #e74c3c;
+      --white: #ffffff;
+      --soft-gray: #f0f4ff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0d1b3e 0%, #1a3a6b 50%, #0d1b3e 100%);
+      min-height: 100vh;
+      color: var(--white);
+    }
+
+    /* ── SETUP SCREEN ── */
+    #setup-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .setup-card {
+      background: rgba(255,255,255,0.05);
+      border: 2px solid var(--gold);
+      border-radius: 20px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 550px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .setup-card h1 {
+      font-size: 2.8rem;
+      color: var(--gold);
+      text-shadow: 0 0 20px rgba(245,197,24,0.5);
+      margin-bottom: 0.3rem;
+    }
+
+    .setup-card .subtitle {
+      font-size: 1rem;
+      color: #aac4ff;
+      margin-bottom: 2rem;
+    }
+
+    .setup-card h2 {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      color: #cde;
+    }
+
+    .team-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.7rem;
+    }
+
+    .team-row input {
+      flex: 1;
+      padding: 0.65rem 1rem;
+      border-radius: 10px;
+      border: 2px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.1);
+      color: var(--white);
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .team-row input:focus { border-color: var(--gold); }
+    .team-row input::placeholder { color: rgba(255,255,255,0.4); }
+
+    .btn-remove {
+      background: rgba(231,76,60,0.3);
+      border: 2px solid #e74c3c;
+      color: #ff9090;
+      border-radius: 10px;
+      width: 40px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: all 0.2s;
+    }
+    .btn-remove:hover { background: #e74c3c; color: white; }
+
+    .btn-add-team {
+      background: transparent;
+      border: 2px dashed rgba(255,255,255,0.3);
+      color: #aac4ff;
+      border-radius: 10px;
+      padding: 0.6rem 1.2rem;
+      cursor: pointer;
+      width: 100%;
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+      transition: all 0.2s;
+    }
+    .btn-add-team:hover { border-color: var(--gold); color: var(--gold); }
+
+    .btn-start {
+      background: linear-gradient(135deg, var(--gold), #e6a800);
+      color: #1a1a00;
+      border: none;
+      border-radius: 14px;
+      padding: 0.9rem 2.5rem;
+      font-size: 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
+    }
+    .btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(245,197,24,0.4); }
+
+    /* ── GAME SCREEN ── */
+    #game-screen { display: none; padding: 1rem; }
+
+    .game-header {
+      text-align: center;
+      padding: 0.8rem 0 1rem;
+    }
+    .game-header h1 {
+      font-size: 2rem;
+      color: var(--gold);
+      text-shadow: 0 0 15px rgba(245,197,24,0.4);
+    }
+
+    /* Scoreboard */
+    #scoreboard {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .score-card {
+      background: rgba(255,255,255,0.08);
+      border: 2px solid rgba(255,255,255,0.2);
+      border-radius: 14px;
+      padding: 0.6rem 1.2rem;
+      text-align: center;
+      min-width: 120px;
+      transition: all 0.3s;
+    }
+    .score-card.active-scorer {
+      border-color: var(--gold);
+      background: rgba(245,197,24,0.15);
+      box-shadow: 0 0 15px rgba(245,197,24,0.3);
+    }
+    .score-card .team-name {
+      font-size: 0.85rem;
+      color: #aac4ff;
+      margin-bottom: 0.2rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .score-card .team-score {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--gold);
+    }
+    .score-card .team-emoji {
+      font-size: 1.2rem;
+    }
+
+    /* Board */
+    #board {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.7rem;
+      max-width: 960px;
+      margin: 0 auto 1.5rem;
+    }
+
+    .category-header {
+      background: linear-gradient(135deg, var(--blue), var(--light-blue));
+      border: 2px solid var(--gold);
+      border-radius: 12px;
+      padding: 0.8rem 0.5rem;
+      text-align: center;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      min-height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .question-cell {
+      background: linear-gradient(135deg, var(--card-bg), var(--light-blue));
+      border: 2px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
+      padding: 0.6rem;
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--gold);
+      cursor: pointer;
+      transition: all 0.2s;
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+    .question-cell:hover:not(.used) {
+      background: linear-gradient(135deg, var(--card-hover), #3a80ff);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      border-color: var(--gold);
+    }
+    .question-cell.used {
+      background: var(--used);
+      border-color: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.1);
+      cursor: default;
+    }
+
+    /* Bottom controls */
+    .game-controls {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      padding-bottom: 1.5rem;
+    }
+
+    .btn-reset {
+      background: rgba(255,255,255,0.1);
+      border: 2px solid rgba(255,255,255,0.3);
+      color: white;
+      border-radius: 10px;
+      padding: 0.6rem 1.4rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .btn-reset:hover { border-color: white; background: rgba(255,255,255,0.2); }
+
+    /* ── MODAL ── */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,10,0.85);
+      backdrop-filter: blur(6px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    #modal-overlay.visible { display: flex; }
+
+    .modal-box {
+      background: linear-gradient(145deg, #0d2060, #1a3a8a);
+      border: 2px solid var(--gold);
+      border-radius: 20px;
+      padding: 2rem;
+      max-width: 580px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.7); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    .modal-points {
+      display: inline-block;
+      background: var(--gold);
+      color: #1a1a00;
+      font-size: 1.1rem;
+      font-weight: 800;
+      padding: 0.3rem 1rem;
+      border-radius: 30px;
+      margin-bottom: 1rem;
+    }
+
+    .modal-category {
+      font-size: 0.85rem;
+      color: #aac4ff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 0.8rem;
+    }
+
+    .modal-clue {
+      font-size: 1.35rem;
+      font-weight: 600;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+      color: white;
+    }
+
+    .btn-reveal {
+      background: linear-gradient(135deg, #6c3abf, #9b59b6);
+      border: none;
+      color: white;
+      border-radius: 12px;
+      padding: 0.8rem 2rem;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 1rem;
+      width: 100%;
+    }
+    .btn-reveal:hover { filter: brightness(1.2); transform: translateY(-1px); }
+
+    .modal-answer {
+      display: none;
+      background: rgba(39, 174, 96, 0.15);
+      border: 2px solid var(--correct);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1.2rem;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #5dfc9a;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .scoring-section {
+      display: none;
+    }
+    .scoring-section h3 {
+      font-size: 0.95rem;
+      color: #cde;
+      margin-bottom: 0.8rem;
+    }
+
+    .team-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+
+    .btn-team {
+      background: rgba(255,255,255,0.08);
+      border: 2px solid rgba(255,255,255,0.25);
+      color: white;
+      border-radius: 10px;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .btn-team:hover { border-color: var(--correct); background: rgba(39,174,96,0.2); color: #5dfc9a; }
+    .btn-team.selected-correct {
+      background: rgba(39,174,96,0.3);
+      border-color: var(--correct);
+      color: #5dfc9a;
+    }
+
+    .score-actions {
+      display: flex;
+      gap: 0.6rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-correct {
+      background: linear-gradient(135deg, #27ae60, #2ecc71);
+      border: none;
+      color: white;
+      border-radius: 10px;
+      padding: 0.6rem 1.4rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-correct:hover { filter: brightness(1.15); }
+
+    .btn-wrong {
+      background: linear-gradient(135deg, #c0392b, #e74c3c);
+      border: none;
+      color: white;
+      border-radius: 10px;
+      padding: 0.6rem 1.4rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-wrong:hover { filter: brightness(1.15); }
+
+    .btn-skip {
+      background: transparent;
+      border: 2px solid rgba(255,255,255,0.3);
+      color: #aac4ff;
+      border-radius: 10px;
+      padding: 0.6rem 1.2rem;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-skip:hover { border-color: white; color: white; }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--gold);
+      color: #1a1a00;
+      font-weight: 700;
+      padding: 0.8rem 2rem;
+      border-radius: 30px;
+      font-size: 1rem;
+      z-index: 200;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      pointer-events: none;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* Winner screen */
+    #winner-screen {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      padding: 2rem;
+    }
+    #winner-screen.visible { display: flex; }
+    #winner-screen h1 { font-size: 3rem; color: var(--gold); margin-bottom: 1rem; }
+    #winner-screen .winner-name { font-size: 2rem; color: white; margin-bottom: 0.5rem; }
+    #winner-screen .winner-score { font-size: 1.5rem; color: #aac4ff; margin-bottom: 2rem; }
+    #winner-screen .final-scores { margin-bottom: 2rem; }
+    #winner-screen .final-scores .score-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 2rem;
+      padding: 0.4rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .btn-play-again {
+      background: var(--gold);
+      color: #1a1a00;
+      border: none;
+      border-radius: 14px;
+      padding: 0.9rem 2.5rem;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Confetti canvas */
+    #confetti-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 299;
+    }
+
+    @media (max-width: 600px) {
+      #board { gap: 0.4rem; }
+      .question-cell { font-size: 1.2rem; min-height: 60px; }
+      .category-header { font-size: 0.75rem; min-height: 55px; }
+      .modal-clue { font-size: 1.1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <h1>🎉 Jeopardy!</h1>
+    <p class="subtitle">Workshop Edition — Instructor Control Panel</p>
+    <h2>👥 Enter Team Names</h2>
+    <div id="teams-container">
+      <div class="team-row">
+        <input type="text" placeholder="Team 1 name..." class="team-input" maxlength="20"/>
+        <button class="btn-remove" onclick="removeTeam(this)" title="Remove">✕</button>
+      </div>
+      <div class="team-row">
+        <input type="text" placeholder="Team 2 name..." class="team-input" maxlength="20"/>
+        <button class="btn-remove" onclick="removeTeam(this)" title="Remove">✕</button>
+      </div>
+    </div>
+    <button class="btn-add-team" onclick="addTeam()">＋ Add another team</button>
+    <button class="btn-start" onclick="startGame()">🚀 Start Game!</button>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="game-screen">
+  <div class="game-header">
+    <h1>🎯 Workshop Jeopardy!</h1>
+  </div>
+
+  <div id="scoreboard"></div>
+  <div id="board"></div>
+
+  <div class="game-controls">
+    <button class="btn-reset" onclick="checkWinner()">🏆 Show Winner</button>
+    <button class="btn-reset" onclick="confirmReset()">🔄 New Game</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-category" id="modal-cat"></div>
+    <div class="modal-points" id="modal-pts"></div>
+    <div class="modal-clue" id="modal-clue"></div>
+
+    <button class="btn-reveal" id="btn-reveal" onclick="revealAnswer()">👀 Reveal Answer</button>
+
+    <div class="modal-answer" id="modal-answer"></div>
+
+    <div class="scoring-section" id="scoring-section">
+      <h3>Which team answered correctly?</h3>
+      <div class="team-buttons" id="team-buttons"></div>
+      <div class="score-actions">
+        <button class="btn-correct" onclick="awardPoints()">✅ Award Points</button>
+        <button class="btn-wrong" onclick="deductPoints()">❌ Deduct Points</button>
+        <button class="btn-skip" onclick="closeModal()">⏭ Skip / No one</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WINNER SCREEN -->
+<div id="winner-screen">
+  <canvas id="confetti-canvas"></canvas>
+  <h1>🏆 Game Over!</h1>
+  <div class="winner-name" id="winner-name"></div>
+  <div class="winner-score" id="winner-score"></div>
+  <div class="final-scores" id="final-scores"></div>
+  <button class="btn-play-again" onclick="confirmReset()">🔄 Play Again</button>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+  // ── DATA ──────────────────────────────────────────────────────────────────
+  const CATEGORIES = [
+    {
+      name: "🎥 Computer Vision & Pi",
+      questions: [
+        { pts: 100, clue: "This library is used for computer vision tasks in the project.", answer: "What is OpenCV?" },
+        { pts: 200, clue: "This computer vision task compares detected faces with previously trained images.", answer: "What is facial recognition?" },
+        { pts: 300, clue: "This tool keeps project packages separate so they do not conflict with other software on the Pi.", answer: "What is a virtual environment?" },
+        { pts: 400, clue: "Lowering this setting can improve frame rate because fewer pixels must be processed.", answer: "What is image resolution?" },
+        { pts: 500, clue: "Running facial recognition directly on the Pi is an example of this kind of computing.", answer: "What is edge computing?" },
+      ]
+    },
+    {
+      name: "🤖 Machine Learning",
+      questions: [
+        { pts: 100, clue: "This type of AI model improves by learning from data instead of following only hard-coded rules.", answer: "What is machine learning?" },
+        { pts: 200, clue: "This process happens when an AI model makes predictions using new input data.", answer: "What is inference?" },
+        { pts: 300, clue: "This type of data is used to teach a machine learning model.", answer: "What is training data?" },
+        { pts: 400, clue: "In machine learning, too little training data may cause this problem where the model performs poorly.", answer: "What is underfitting?" },
+        { pts: 500, clue: "This occurs when a model performs well on training data but poorly on new data.", answer: "What is overfitting?" },
+      ]
+    },
+    {
+      name: "🌟 Tech Trivia",
+      questions: [
+        { pts: 100, clue: "This company created ChatGPT.", answer: "What is OpenAI?" },
+        { pts: 200, clue: "This programming language was named after a British comedy group, not the snake.", answer: "What is Python?" },
+        { pts: 300, clue: "This law is famous in computing for predicting that computing power roughly doubles every two years.", answer: "What is Moore's Law?" },
+        { pts: 400, clue: "This Marvel AI assistant helps Iron Man control his suits.", answer: "What is JARVIS?" },
+        { pts: 500, clue: "This social media app was originally called 'Musical.ly'.", answer: "What is TikTok?" },
+      ]
+    },
+    {
+      name: "🧑‍🏫 Guess the Mentor",
+      questions: [
+        { pts: 100, clue: "This mentor may secretly turn the workshop into a Celine Dion karaoke concert.", answer: "Who is Abu?" },
+        { pts: 200, clue: "This mentor considers 'Thai spicy' a personality trait, not a food preference.", answer: "Who is Alvaro?" },
+        { pts: 300, clue: "This mentor could probably start a debate by putting Messi and Michael Jordan on the same dream team.", answer: "Who is Dan?" },
+        { pts: 400, clue: "This mentor enjoys photography from the era when people couldn't instantly check if they blinked.", answer: "Who is Eric?" },
+        { pts: 500, clue: "This mentor has Novak Djokovic's autograph and probably keeps it safer than their passport.", answer: "Who is Thitima?" },
+      ]
+    },
+    {
+      name: "😂 Dev Feelings",
+      questions: [
+        { pts: 100, clue: "This emotion appears after realizing the bug was caused by a missing comma.", answer: "What is embarrassment?" },
+        { pts: 200, clue: "This academic activity has one person doing the slides, one person coding, and one person disappearing.", answer: "What is a group project?" },
+        { pts: 300, clue: "This emotion appears after pushing broken code to the shared repository.", answer: "What is immediate regret?" },
+        { pts: 400, clue: "This emotion appears after forgetting to save a file before closing VS Code.", answer: "What is panic?" },
+        { pts: 500, clue: "This rare event occurs when the entire group project works on the first try.", answer: "What is a miracle?" },
+      ]
+    }
+  ];
+
+  const TEAM_EMOJIS = ["🔵","🔴","🟢","🟡","🟣","🟠"];
+  const SAVE_KEY = 'jeopardy_workshop_save';
+
+  // ── STATE ──────────────────────────────────────────────────────────────────
+  let teams = [];
+  let usedCells = new Set();
+  let selectedTeamIdx = null;
+  let currentQuestion = null;
+
+  // ── AUTOSAVE ───────────────────────────────────────────────────────────────
+  function saveState() {
+    const state = {
+      teams,
+      usedCells: [...usedCells],
+      gameActive: true
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+  }
+
+  function clearSave() {
+    localStorage.removeItem(SAVE_KEY);
+  }
+
+  function loadSavedGame() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return false;
+      const state = JSON.parse(raw);
+      if (!state.teams || !state.usedCells) return false;
+      teams = state.teams;
+      usedCells = new Set(state.usedCells);
+      return true;
+    } catch(e) {
+      return false;
+    }
+  }
+
+  // ── SETUP ──────────────────────────────────────────────────────────────────
+  let teamCount = 2;
+
+  // On load, check for a saved game and offer to resume
+  window.addEventListener('DOMContentLoaded', () => {
+    const hasSave = loadSavedGame();
+    if (hasSave) {
+      showResumeBar();
+    }
+  });
+
+  function showResumeBar() {
+    const bar = document.createElement('div');
+    bar.id = 'resume-bar';
+    bar.style.cssText = `
+      position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+      background: linear-gradient(135deg, #1a4a00, #27ae60);
+      color: white; display: flex; align-items: center; justify-content: center;
+      gap: 1rem; padding: 0.9rem 1.5rem; font-size: 0.95rem; font-weight: 600;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    `;
+    bar.innerHTML = `
+      <span>💾 Saved game found! Resume where you left off?</span>
+      <button onclick="resumeGame()" style="background:white;color:#1a4a00;border:none;border-radius:8px;padding:0.4rem 1rem;font-weight:700;cursor:pointer;">▶ Resume</button>
+      <button onclick="dismissResume()" style="background:rgba(255,255,255,0.2);color:white;border:2px solid rgba(255,255,255,0.5);border-radius:8px;padding:0.4rem 1rem;font-weight:600;cursor:pointer;">✕ Start Fresh</button>
+    `;
+    document.body.prepend(bar);
+  }
+
+  function resumeGame() {
+    document.getElementById('resume-bar')?.remove();
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('game-screen').style.display = 'block';
+    renderScoreboard();
+    renderBoard();
+  }
+
+  function dismissResume() {
+    clearSave();
+    teams = [];
+    usedCells = new Set();
+    document.getElementById('resume-bar')?.remove();
+  }
+
+  function addTeam() {
+    if (teamCount >= 6) { showToast("Max 6 teams!"); return; }
+    teamCount++;
+    const container = document.getElementById('teams-container');
+    const row = document.createElement('div');
+    row.className = 'team-row';
+    row.innerHTML = `
+      <input type="text" placeholder="Team ${teamCount} name..." class="team-input" maxlength="20"/>
+      <button class="btn-remove" onclick="removeTeam(this)" title="Remove">✕</button>
+    `;
+    container.appendChild(row);
+  }
+
+  function removeTeam(btn) {
+    const rows = document.querySelectorAll('.team-row');
+    if (rows.length <= 1) { showToast("Need at least 1 team!"); return; }
+    btn.closest('.team-row').remove();
+  }
+
+  function startGame() {
+    const inputs = document.querySelectorAll('.team-input');
+    teams = [];
+    inputs.forEach((inp, i) => {
+      const name = inp.value.trim() || `Team ${i + 1}`;
+      teams.push({ name, score: 0, emoji: TEAM_EMOJIS[i] });
+    });
+
+    if (teams.length === 0) { showToast("Add at least one team!"); return; }
+
+    usedCells = new Set();
+    selectedTeamIdx = null;
+    currentQuestion = null;
+
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('game-screen').style.display = 'block';
+
+    saveState();
+    renderScoreboard();
+    renderBoard();
+  }
+
+  // ── BOARD ──────────────────────────────────────────────────────────────────
+  function renderBoard() {
+    const board = document.getElementById('board');
+    board.innerHTML = '';
+
+    // Headers
+    CATEGORIES.forEach(cat => {
+      const h = document.createElement('div');
+      h.className = 'category-header';
+      h.textContent = cat.name;
+      board.appendChild(h);
+    });
+
+    // Questions (5 rows × 3 cols)
+    for (let row = 0; row < 5; row++) {
+      CATEGORIES.forEach((cat, col) => {
+        const q = cat.questions[row];
+        const key = `${col}-${row}`;
+        const cell = document.createElement('div');
+        cell.className = 'question-cell' + (usedCells.has(key) ? ' used' : '');
+        cell.textContent = usedCells.has(key) ? '' : `$${q.pts}`;
+        if (!usedCells.has(key)) {
+          cell.onclick = () => openQuestion(col, row, key);
+        }
+        board.appendChild(cell);
+      });
+    }
+  }
+
+  // ── SCOREBOARD ─────────────────────────────────────────────────────────────
+  function renderScoreboard() {
+    const sb = document.getElementById('scoreboard');
+    sb.innerHTML = '';
+    teams.forEach((team, i) => {
+      const card = document.createElement('div');
+      card.className = 'score-card' + (selectedTeamIdx === i ? ' active-scorer' : '');
+      card.id = `score-card-${i}`;
+      card.innerHTML = `
+        <div class="team-emoji">${team.emoji}</div>
+        <div class="team-name">${team.name}</div>
+        <div class="team-score">${team.score}</div>
+      `;
+      sb.appendChild(card);
+    });
+  }
+
+  // ── MODAL ──────────────────────────────────────────────────────────────────
+  function openQuestion(col, row, key) {
+    const cat = CATEGORIES[col];
+    const q = cat.questions[row];
+    currentQuestion = { col, row, key, pts: q.pts };
+
+    document.getElementById('modal-cat').textContent = cat.name;
+    document.getElementById('modal-pts').textContent = `$${q.pts}`;
+    document.getElementById('modal-clue').textContent = q.clue;
+    document.getElementById('modal-answer').style.display = 'none';
+    document.getElementById('modal-answer').textContent = '';
+    document.getElementById('btn-reveal').style.display = 'block';
+    document.getElementById('scoring-section').style.display = 'none';
+    selectedTeamIdx = null;
+
+    // Team buttons
+    const tb = document.getElementById('team-buttons');
+    tb.innerHTML = '';
+    teams.forEach((team, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'btn-team';
+      btn.textContent = `${team.emoji} ${team.name}`;
+      btn.onclick = () => selectTeam(i);
+      btn.id = `btn-team-${i}`;
+      tb.appendChild(btn);
+    });
+
+    document.getElementById('modal-overlay').classList.add('visible');
+    renderScoreboard();
+  }
+
+  function revealAnswer() {
+    const q = CATEGORIES[currentQuestion.col].questions[currentQuestion.row];
+    const answerEl = document.getElementById('modal-answer');
+    answerEl.textContent = q.answer;
+    answerEl.style.display = 'block';
+    document.getElementById('btn-reveal').style.display = 'none';
+    document.getElementById('scoring-section').style.display = 'block';
+  }
+
+  function selectTeam(idx) {
+    selectedTeamIdx = idx;
+    document.querySelectorAll('.btn-team').forEach((btn, i) => {
+      btn.classList.toggle('selected-correct', i === idx);
+    });
+    // highlight scoreboard
+    document.querySelectorAll('.score-card').forEach((c, i) => {
+      c.classList.toggle('active-scorer', i === idx);
+    });
+  }
+
+  function awardPoints() {
+    if (selectedTeamIdx === null) { showToast("Pick a team first! 👆"); return; }
+    teams[selectedTeamIdx].score += currentQuestion.pts;
+    showToast(`+${currentQuestion.pts} for ${teams[selectedTeamIdx].emoji} ${teams[selectedTeamIdx].name}! 🎉`);
+    finishQuestion();
+  }
+
+  function deductPoints() {
+    if (selectedTeamIdx === null) { showToast("Pick a team first! 👆"); return; }
+    teams[selectedTeamIdx].score -= currentQuestion.pts;
+    showToast(`-${currentQuestion.pts} from ${teams[selectedTeamIdx].emoji} ${teams[selectedTeamIdx].name} 😬`);
+    finishQuestion();
+  }
+
+  function finishQuestion() {
+    usedCells.add(currentQuestion.key);
+    saveState();
+    closeModal();
+    renderBoard();
+    renderScoreboard();
+
+    // Check if all done
+    if (usedCells.size === 25) {
+      setTimeout(checkWinner, 600);
+    }
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('visible');
+    selectedTeamIdx = null;
+    currentQuestion = null;
+    renderScoreboard();
+  }
+
+  // ── WINNER ─────────────────────────────────────────────────────────────────
+  function checkWinner() {
+    if (teams.length === 0) return;
+    const sorted = [...teams].sort((a, b) => b.score - a.score);
+    const winner = sorted[0];
+
+    document.getElementById('winner-name').textContent = `${winner.emoji} ${winner.name}`;
+    document.getElementById('winner-score').textContent = `Score: ${winner.score} points`;
+
+    const fs = document.getElementById('final-scores');
+    fs.innerHTML = '<h3 style="color:#aac4ff;margin-bottom:0.8rem;">Final Standings</h3>';
+    sorted.forEach((t, i) => {
+      const row = document.createElement('div');
+      row.className = 'score-row';
+      row.innerHTML = `<span>${['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣'][i]} ${t.emoji} ${t.name}</span><span style="color:var(--gold);font-weight:700">${t.score}</span>`;
+      fs.appendChild(row);
+    });
+
+    document.getElementById('winner-screen').classList.add('visible');
+    launchConfetti();
+  }
+
+  function confirmReset() {
+    clearSave();
+    teams = [];
+    usedCells = new Set();
+    document.getElementById('winner-screen').classList.remove('visible');
+    document.getElementById('game-screen').style.display = 'none';
+    document.getElementById('setup-screen').style.display = 'flex';
+    stopConfetti();
+  }
+
+  // ── TOAST ──────────────────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2400);
+  }
+
+  // ── CONFETTI ───────────────────────────────────────────────────────────────
+  let confettiFrame;
+  const COLORS = ['#f5c518','#27ae60','#3498db','#e74c3c','#9b59b6','#e67e22','#1abc9c'];
+
+  function launchConfetti() {
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles = Array.from({ length: 120 }, () => ({
+      x: Math.random() * canvas.width,
+      y: -20,
+      w: 8 + Math.random() * 10,
+      h: 4 + Math.random() * 6,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      speed: 2 + Math.random() * 4,
+      angle: Math.random() * Math.PI * 2,
+      spin: (Math.random() - 0.5) * 0.2,
+      drift: (Math.random() - 0.5) * 1.5
+    }));
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        p.y += p.speed;
+        p.x += p.drift;
+        p.angle += p.spin;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+        ctx.restore();
+        if (p.y > canvas.height) {
+          p.y = -20;
+          p.x = Math.random() * canvas.width;
+        }
+      });
+      confettiFrame = requestAnimationFrame(draw);
+    }
+    draw();
+  }
+
+  function stopConfetti() {
+    cancelAnimationFrame(confettiFrame);
+    const canvas = document.getElementById('confetti-canvas');
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  // Close modal on overlay click
+  document.getElementById('modal-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+</script>
+</body>
+</html>
